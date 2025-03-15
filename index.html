@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberShield - Cyberbullying Detection Platform</title>
+    <script src="https://unpkg.com/@tensorflow/tfjs"></script>
+    <script src="https://unpkg.com/@tensorflow-models/coco-ssd"></script>
+    <script src="https://unpkg.com/@tensorflow-models/toxicity"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f9ff;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+        }
+        .language-selector {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .visualization-container {
+            height: 300px;
+            position: relative;
+        }
+        .radar-chart {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 0 auto;
+        }
+        .center-point {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .radar-axis {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background-color: rgba(59, 130, 246, 0.3);
+            transform-origin: left center;
+        }
+        .radar-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            border: 1px dashed rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .data-point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 100;
+        }
+        .mobile-menu.active {
+            display: flex;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="mobileMenu" class="mobile-menu flex-col justify-center items-center">
+        <button onclick="toggleMenu()" class="absolute top-4 right-4 text-white">
+            <i class="bi bi-x-lg text-3xl"></i>
+        </button>
+        <div class="flex flex-col space-y-6 text-white text-xl">
+            <a href="#features" onclick="toggleMenu()" class="hover:text-blue-200">Features</a>
+            <a href="#analysis" onclick="toggleMenu()" class="hover:text-blue-200">Analysis</a>
+            <a href="#report" onclick="toggleMenu()" class="hover:text-blue-200">Report</a>
+            <a href="#dashboard" onclick="toggleMenu()" class="hover:text-blue-200">Dashboard</a>
+        </div>
+    </div>
+
+    <nav class="gradient-bg text-white p-4 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold flex items-center">
+                <i class="bi bi-shield-lock-fill mr-2"></i>
+                CyberShield
+            </h1>
+            <div class="hidden md:flex space-x-6">
+                <a href="#features" class="hover:text-blue-200">Features</a>
+                <a href="#analysis" class="hover:text-blue-200">Analysis</a>
+                <a href="#report" class="hover:text-blue-200">Report</a>
+                <a href="#dashboard" class="hover:text-blue-200">Dashboard</a>
+            </div>
+            <button class="md:hidden" onclick="toggleMenu()">
+                <i class="bi bi-list text-2xl"></i>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <section class="text-center mb-16">
+            <h2 class="text-4xl font-bold mb-4">Advanced Cyberbullying Detection</h2>
+            <p class="text-gray-600 mb-8">Protecting users across social media platforms with AI-powered detection</p>
+            
+            <div class="grid md:grid-cols-3 gap-4 mb-8" id="features">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <i class="bi bi-cpu text-4xl text-blue-600"></i>
+                    <h3 class="text-xl font-semibold my-3">GRU and RNN Models</h3>
+                    <p class="text-gray-600">Advanced recurrent neural networks for accurate text analysis across platforms</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <i class="bi bi-image text-4xl text-blue-600"></i>
+                    <h3 class="text-xl font-semibold my-3">CNN Image Analysis</h3>
+                    <p class="text-gray-600">Deep convolutional networks to detect offensive visual content</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <i class="bi bi-translate text-4xl text-blue-600"></i>
+                    <h3 class="text-xl font-semibold my-3">Multilingual Support</h3>
+                    <p class="text-gray-600">NLP translation models to detect cyberbullying in multiple languages</p>
+                </div>
+            </div>
+            
+            <div id="analysis" class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4">Text Content Analysis (GRU/RNN)</h3>
+                    <div class="flex gap-3 mb-4">
+                        <select id="languageSelect" class="p-2 border rounded flex-grow">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="hi">Hindi</option>
+                            <option value="zh">Chinese</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ar">Arabic</option>
+                            <option value="ru">Russian</option>
+                        </select>
+                        <select id="modelSelect" class="p-2 border rounded flex-grow">
+                            <option value="gru">GRU Model</option>
+                            <option value="rnn">RNN Model</option>
+                            <option value="lstm">LSTM Model</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <textarea id="contentInput" class="w-full p-2 border rounded" rows="4" placeholder="Enter text to analyze..."></textarea>
+                    </div>
+                    <button onclick="analyzeContent()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2 w-full">
+                        <i class="bi bi-search"></i> Analyze
+                    </button>
+                    <div id="loadingText" class="hidden">
+                        <div class="loader mt-4"></div>
+                        <p class="text-blue-600">Processing with advanced GRU/RNN models...</p>
+                    </div>
+                    <div id="result" class="mt-4 text-left"></div>
+                    
+                    <div id="detailedAnalysis" class="mt-6 hidden">
+                        <h4 class="font-semibold mb-2">Detailed Analysis</h4>
+                        <div class="visualization-container">
+                            <div class="radar-chart">
+                                <div class="center-point"></div>
+                                <!-- 5 radar axes (categories of toxicity) -->
+                                <div class="radar-axis" style="transform: rotate(0deg)"></div>
+                                <div class="radar-axis" style="transform: rotate(72deg)"></div>
+                                <div class="radar-axis" style="transform: rotate(144deg)"></div>
+                                <div class="radar-axis" style="transform: rotate(216deg)"></div>
+                                <div class="radar-axis" style="transform: rotate(288deg)"></div>
+                                
+                                <!-- Radar circles -->
+                                <div class="radar-circle" style="width: 50px; height: 50px;"></div>
+                                <div class="radar-circle" style="width: 100px; height: 100px;"></div>
+                                <div class="radar-circle" style="width: 150px; height: 150px;"></div>
+                                <div class="radar-circle" style="width: 200px; height: 200px;"></div>
+                                
+                                <!-- Data points will be added dynamically -->
+                                <div id="dataPoints"></div>
+                                
+                                <!-- Labels -->
+                                <div class="absolute" style="top: 0; left: 50%; transform: translateX(-50%); margin-top: -25px;">Hate</div>
+                                <div class="absolute" style="top: 38%; right: 10px;">Insult</div>
+                                <div class="absolute" style="bottom: 20%; right: 15%;">Obscene</div>
+                                <div class="absolute" style="bottom: 20%; left: 15%;">Threat</div>
+                                <div class="absolute" style="top: 38%; left: 10px;">Identity</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4">Image Analysis (CNN)</h3>
+                    <div class="mb-4">
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50" id="dropZone">
+                            <i class="bi bi-cloud-upload text-4xl text-blue-500"></i>
+                            <p class="mt-2">Drag and drop an image or click to upload</p>
+                            <input type="file" id="imageInput" accept="image/*" class="hidden">
+                        </div>
+                    </div>
+                    <button onclick="analyzeImage()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2 w-full">
+                        <i class="bi bi-image"></i> Analyze Image
+                    </button>
+                    <div id="loadingImage" class="hidden">
+                        <div class="loader mt-4"></div>
+                        <p class="text-blue-600">Processing with CNN models...</p>
+                    </div>
+                    <div id="imagePreview" class="mt-4 hidden">
+                        <h4 class="font-semibold mb-2">Preview:</h4>
+                        <img id="previewImg" class="max-w-full h-auto rounded-lg mx-auto" src="" alt="Preview">
+                    </div>
+                    <div id="imageResult" class="mt-4"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="report" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">Report Cyberbullying</h2>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <form onsubmit="submitReport(event)" class="space-y-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2">Platform</label>
+                            <select id="platform" class="w-full p-2 border rounded">
+                                <option value="facebook">Facebook</option>
+                                <option value="twitter">Twitter (X)</option>
+                                <option value="instagram">Instagram</option>
+                                <option value="tiktok">TikTok</option>
+                                <option value="snapchat">Snapchat</option>
+                                <option value="reddit">Reddit</option>
+                                <option value="discord">Discord</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div id="otherPlatformContainer" class="hidden">
+                            <label class="block mb-2">Specify Platform</label>
+                            <input type="text" id="otherPlatform" class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block mb-2">Offender's Username</label>
+                            <input type="text" id="offenderUsername" class="w-full p-2 border rounded" required>
+                        </div>
+                        <div>
+                            <label class="block mb-2">Your Email (Optional)</label>
+                            <input type="email" id="reporterEmail" class="w-full p-2 border rounded">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block mb-2">Description</label>
+                        <textarea id="description" class="w-full p-2 border rounded" rows="4" required placeholder="Please describe the incident in detail..."></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block mb-2">Evidence (Optional)</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50" id="evidenceDropZone">
+                            <i class="bi bi-paperclip text-2xl text-blue-500"></i>
+                            <p>Drag and drop screenshots or click to upload</p>
+                            <input type="file" id="evidenceInput" accept="image/*" class="hidden" multiple>
+                        </div>
+                        <div id="evidencePreview" class="mt-2 grid grid-cols-3 gap-2"></div>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="anonymous" class="mr-2">
+                        <label for="anonymous">Submit report anonymously</label>
+                    </div>
+                    
+                    <button type="submit" class="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 flex items-center justify-center gap-2">
+                        <i class="bi bi-shield-exclamation"></i> Submit Report
+                    </button>
+                </form>
+            </div>
+        </section>
+        
+        <section id="dashboard" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">Cyberbullying Analytics Dashboard</h2>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="grid md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-blue-800">Text Analysis</h3>
+                        <p class="text-4xl font-bold text-blue-600" id="textStats">0</p>
+                        <p class="text-sm text-gray-600">Content items analyzed</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-green-800">Image Analysis</h3>
+                        <p class="text-4xl font-bold text-green-600" id="imageStats">0</p>
+                        <p class="text-sm text-gray-600">Images processed</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-red-800">Reports Filed</h3>
+                        <p class="text-4xl font-bold text-red-600" id="reportStats">0</p>
+                        <p class="text-sm text-gray-600">User reports submitted</p>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="font-semibold mb-3">Detection Breakdown</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div class="mb-3">
+                            <div class="flex justify-between mb-1">
+                                <span>Hate Speech</span>
+                                <span>34%</span>
+                            </div>
+                            <div class="h-2 bg-gray-200 rounded-full">
+                                <div class="h-2 bg-red-500 rounded-full" style="width: 34%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="flex justify-between mb-1">
+                                <span>Insults</span>
+                                <span>42%</span>
+                            </div>
+                            <div class="h-2 bg-gray-200 rounded-full">
+                                <div class="h-2 bg-orange-500 rounded-full" style="width: 42%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="flex justify-between mb-1">
+                                <span>Threats</span>
+                                <span>16%</span>
+                            </div>
+                            <div class="h-2 bg-gray-200 rounded-full">
+                                <div class="h-2 bg-yellow-500 rounded-full" style="width: 16%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span>Inappropriate Content</span>
+                                <span>28%</span>
+                            </div>
+                            <div class="h-2 bg-gray-200 rounded-full">
+                                <div class="h-2 bg-purple-500 rounded-full" style="width: 28%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-3">Recent Detection Activity</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="py-2 px-4 text-left">Timestamp</th>
+                                    <th class="py-2 px-4 text-left">Type</th>
+                                    <th class="py-2 px-4 text-left">Source</th>
+                                    <th class="py-2 px-4 text-left">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activityLog">
+                                <!-- Activity logs will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="gradient-bg text-white py-10">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">CyberShield</h3>
+                    <p>Advanced AI-powered cyberbullying detection and prevention platform protecting users across social media.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#features" class="hover:text-blue-200">Features</a></li>
+                        <li><a href="#analysis" class="hover:text-blue-200">Analysis Tools</a></li>
+                        <li><a href="#report" class="hover:text-blue-200">Report Bullying</a></li>
+                        <li><a href="#dashboard" class="hover:text-blue-200">Dashboard</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact</h3>
+                    <p class="mb-2"><i class="bi bi-envelope mr-2"></i> support@cybershield.ai</p>
+                    <p><i class="bi bi-telephone mr-2"></i> +1 (800) 555-0123</p>
+                    <div class="mt-4 flex space-x-4">
+                        <a href="#" class="text-white hover:text-blue-200"><i class="bi bi-twitter text-xl"></i></a>
+                        <a href="#" class="text-white hover:text-blue-200"><i class="bi bi-facebook text-xl"></i></a>
+                        <a href="#" class="text-white hover:text-blue-200"><i class="bi bi-instagram text-xl"></i></a>
+                        <a href="#" class="text-white hover:text-blue-200"><i class="bi bi-linkedin text-xl"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-blue-400 mt-8 pt-8 text-center">
+                <p>© 2023 CyberShield. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        function toggleMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('active');
+        }
+        
+        // Initialize toxicity model
+        let toxicityModel;
+        async function loadToxicityModel() {
+            try {
+                toxicityModel = await toxicity.load(0.7);
+                console.log("Toxicity model loaded");
+            } catch(err) {
+                console.error("Error loading toxicity model:", err);
+            }
+        }
+        
+        // Initialize stats counters
+        let textAnalysisCount = 0;
+        let imageAnalysisCount = 0;
+        let reportsCount = 0;
+        
+        // Content analysis with TensorFlow.js toxicity model
+        async function analyzeContent() {
+            const content = document.getElementById('contentInput').value.trim();
+            const result = document.getElementById('result');
+            const loadingText = document.getElementById('loadingText');
+            const detailedAnalysis = document.getElementById('detailedAnalysis');
+            
+            if (!content) {
+                result.innerHTML = '<p class="text-red-600">Please enter text to analyze.</p>';
+                return;
+            }
+            
+            result.innerHTML = '';
+            detailedAnalysis.classList.add('hidden');
+            loadingText.classList.remove('hidden');
+            
+            try {
+                // If toxicity model is not loaded yet, load it
+                if (!toxicityModel) {
+                    await loadToxicityModel();
+                }
+                
+                setTimeout(async () => {
+                    let predictions;
+                    try {
+                        // If model loaded successfully, use it
+                        if (toxicityModel) {
+                            predictions = await toxicityModel.classify(content);
+                        } else {
+                            // Fallback to simulated results
+                            predictions = simulateToxicityResults(content);
+                        }
+                        
+                        // Calculate overall toxicity score as an average
+                        let totalScore = 0;
+                        let positiveCategories = 0;
+                        let detailedResults = '<div class="mt-3 space-y-2">';
+                        
+                        // Visualize the results on the radar chart
+                        const dataPoints = document.getElementById('dataPoints');
+                        dataPoints.innerHTML = '';
+                        
+                        predictions.forEach((prediction, index) => {
+                            const label = prediction.label;
+                            const score = prediction.results[0].match ? prediction.results[0].probabilities[1] : 0;
+                            
+                            if (prediction.results[0].match) {
+                                totalScore += score;
+                                positiveCategories++;
+                            }
+                            
+                            const color = score > 0.7 ? 'bg-red-100' : (score > 0.5 ? 'bg-yellow-100' : 'bg-green-100');
+                            const textColor = score > 0.7 ? 'text-red-700' : (score > 0.5 ? 'text-yellow-700' : 'text-green-700');
+                            
+                            detailedResults += `
+                                <div class="p-2 ${color} rounded">
+                                    <div class="flex justify-between">
+                                        <span class="font-semibold ${textColor}">${label}</span>
+                                        <span class="${textColor}">${(score * 100).toFixed(1)}%</span>
+                                    </div>
+                                    <div class="w-full h-2 bg-gray-200 rounded-full mt-1">
+                                        <div class="h-2 ${textColor.replace('text', 'bg')} rounded-full" style="width: ${score * 100}%"></div>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            // Add data point to radar chart
+                            const angle = (index * 72) * Math.PI / 180; // 5 points, 72 degrees apart
+                            const distance = score * 100; // Scale for the chart
+                            const x = 125 + Math.cos(angle) * distance;
+                            const y = 125 + Math.sin(angle) * distance;
+                            
+                            dataPoints.innerHTML += `<div class="data-point" style="left: ${x}px; top: ${y}px;"></div>`;
+                        });
+                        
+                        detailedResults += '</div>';
+                        
+                        // Calculate overall score
+                        const overallScore = positiveCategories > 0 ? totalScore / positiveCategories : 0;
+                        const overallStatus = overallScore > 0.7 ? 'High Risk' : (overallScore > 0.5 ? 'Medium Risk' : 'Low Risk');
+                        const overallColor = overallScore > 0.7 ? 'bg-red-100 text-red-700' : (overallScore > 0.5 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700');
+                        
+                        const resultHTML = `
+                            <div class="p-4 ${overallColor} rounded">
+                                <p class="font-semibold text-lg">Analysis Result:</p>
+                                <p class="text-2xl font-bold">${overallStatus}</p>
+                                <p>Overall Score: ${(overallScore * 100).toFixed(1)}%</p>
+                            </div>
+                            ${detailedResults}
+                        `;
+                        
+                        result.innerHTML = resultHTML;
+                        detailedAnalysis.classList.remove('hidden');
+                        
+                        // Update dashboard stats
+                        textAnalysisCount++;
+                        document.getElementById('textStats').textContent = textAnalysisCount;
+                        
+                        // Add to activity log
+                        addActivityLogEntry('Text', overallStatus);
+                        
+                    } catch (error) {
+                        result.innerHTML = `<p class="text-red-600">Error during analysis: ${error.message}</p>`;
+                    }
+                    
+                    loadingText.classList.add('hidden');
+                }, 1500);
+                
+            } catch (error) {
+                loadingText.classList.add('hidden');
+                result.innerHTML = `<p class="text-red-600">Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Simulate toxicity detection results
+        function simulateToxicityResults(content) {
+            // Simple keyword-based simulation
+            const toxicWords = ['hate', 'stupid', 'idiot', 'kill', 'ugly', 'die', 'loser', 'fat'];
+            const obsceneWords = ['f**k', 'shit', 'ass', 'damn', 'hell', 'bitch'];
+            
+            content = content.toLowerCase();
+            
+            const categories = [
+                {label: 'identity_attack'},
+                {label: 'insult'},
+                {label: 'obscene'},
+                {label: 'severe_toxicity'},
+                {label: 'threat'}
+            ];
+            
+            return categories.map(category => {
+                let score = 0;
+                
+                // Check for toxic words
+                toxicWords.forEach(word => {
+                    if (content.includes(word)) {
+                        score += 0.2;
+                    }
+                });
+                
+                // Check for obscene words
+                if (category.label === 'obscene') {
+                    obsceneWords.forEach(word => {
+                        if (content.includes(word)) {
+                            score += 0.3;
+                        }
+                    });
+                }
+                
+                // Random variation but keep within 0-1
+                score = Math.min(1, Math.max(0, score + (Math.random() * 0.3)));
+                
+                return {
+                    label: category.label,
+                    results: [{
+                        match: score > 0.5,
+                        probabilities: [1 - score, score]
+                    }]
+                };
+            });
+        }
+
+        // Image analysis simulation
+        function analyzeImage() {
+            const imageInput = document.getElementById('imageInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            const result = document.getElementById('imageResult');
+            const loadingImage = document.getElementById('loadingImage');
+            
+            if (imageInput.files.length > 0) {
+                const file = imageInput.files[0];
+                const reader = new FileReader();
+                
+                // Show loading indicator
+                result.innerHTML = '';
+                loadingImage.classList.remove('hidden');
+                
+                reader.onload = function(e) {
+                    // Display preview
+                    previewImg.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    
+                    // Simulate image analysis
+                    setTimeout(() => {
+                        const detections = simulateImageDetection();
+                        
+                        // Display results
+                        let resultHTML = '<h4 class="font-semibold mb-2">Image Analysis Results:</h4>';
+                        
+                        if (detections.harmfulContent) {
+                            resultHTML += `
+                                <div class="p-4 bg-red-100 rounded">
+                                    <p class="font-semibold text-red-700">Potentially harmful content detected</p>
+                                    <p class="mt-2">Confidence: ${detections.confidence}%</p>
+                                    <div class="mt-3">
+                                        <p class="font-semibold">Detected elements:</p>
+                                        <ul class="list-disc pl-5 mt-1">
+                                            ${detections.elements.map(el => `<li>${el}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            resultHTML += `
+                                <div class="p-4 bg-green-100 rounded">
+                                    <p class="font-semibold text-green-700">No harmful content detected</p>
+                                    <p class="mt-2">Confidence: ${detections.confidence}%</p>
+                                </div>
+                            `;
+                        }
+                        
+                        result.innerHTML = resultHTML;
+                        loadingImage.classList.add('hidden');
+                        
+                        // Update dashboard stats
+                        imageAnalysisCount++;
+                        document.getElementById('imageStats').textContent = imageAnalysisCount;
+                        
+                        // Add to activity log
+                        addActivityLogEntry('Image', detections.harmfulContent ? 'Harmful Content' : 'Safe Content');
+                        
+                    }, 2000);
+                };
+                
+                reader.readAsDataURL(file);
+            } else {
+                result.innerHTML = '<p class="text-red-600">Please select an image to analyze.</p>';
+            }
+        }
+        
+        // Simulate image detection results
+        function simulateImageDetection() {
+            const random = Math.random();
+            
+            if (random > 0.7) {
+                return {
+                    harmfulContent: true,
+                    confidence: Math.floor(70 + Math.random() * 25),
+                    elements: [
+                        'Offensive gestures',
+                        'Inappropriate content',
+                        'Potential cyberbullying context'
+                    ]
+                };
+            } else {
+                return {
+                    harmfulContent: false,
+                    confidence: Math.floor(75 + Math.random() * 20)
+                };
+            }
+        }
+
+        // Report submission handler
+        function submitReport(event) {
+            event.preventDefault();
+            const platform = document.getElementById('platform').value;
+            const username = document.getElementById('offenderUsername').value;
+            const description = document.getElementById('description').value;
+            const anonymous = document.getElementById('anonymous').checked;
+            
+            // Add loading effect
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="bi bi-arrow-clockwise animate-spin"></i> Submitting...';
+            submitBtn.disabled = true;
+            
+            // Simulate API call
+            setTimeout(() => {
+                // Reset form
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                event.target.reset();
+                
+                // Clear evidence preview
+                document.getElementById('evidencePreview').innerHTML = '';
+                
+                // Show success message
+                alert('Report submitted successfully. Our team will review it shortly.');
+                
+                // Update dashboard stats
+                reportsCount++;
+                document.getElementById('reportStats').textContent = reportsCount;
+                
+                // Add to activity log
+                addActivityLogEntry('Report', 'Submitted');
+                
+            }, 1500);
+        }
+        
+        // File drop zone handling
+        function setupDropZones() {
+            const imageDropZone = document.getElementById('dropZone');
+            const imageInput = document.getElementById('imageInput');
+            
+            imageDropZone.addEventListener('click', () => {
+                imageInput.click();
+            });
+            
+            imageDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                imageDropZone.classList.add('border-blue-500', 'bg-blue-50');
+            });
+            
+            imageDropZone.addEventListener('dragleave', () => {
+                imageDropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            });
+            
+            imageDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                imageDropZone.classList.remove('border-blue-500', 'bg-blue-50');
+                
+                if (e.dataTransfer.files.length) {
+                    imageInput.files = e.dataTransfer.files;
+                    const previewDiv = document.getElementById('imagePreview');
+                    const previewImg = document.getElementById('previewImg');
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImg.src = e.target.result;
+                        previewDiv.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // Setup evidence drop zone
+            const evidenceDropZone = document.getElementById('evidenceDropZone');
+            const evidenceInput = document.getElementById('evidenceInput');
+            const evidencePreview = document.getElementById('evidencePreview');
+            
+            evidenceDropZone.addEventListener('click', () => {
+                evidenceInput.click();
+            });
+            
+            evidenceInput.addEventListener('change', function() {
+                displayEvidenceImages(this.files);
+            });
+            
+            evidenceDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                evidenceDropZone.classList.add('border-blue-500', 'bg-blue-50');
+            });
+            
+            evidenceDropZone.addEventListener('dragleave', () => {
+                evidenceDropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            });
+            
+            evidenceDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                evidenceDropZone.classList.remove('border-blue-500', 'bg-blue-50');
+                
+                if (e.dataTransfer.files.length) {
+                    displayEvidenceImages(e.dataTransfer.files);
+                }
+            });
+        }
+        
+        // Display evidence images
+        function displayEvidenceImages(files) {
+            const evidencePreview = document.getElementById('evidencePreview');
+            evidencePreview.innerHTML = '';
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imgContainer = document.createElement('div');
+                        imgContainer.className = 'relative';
+                        
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'w-full h-24 object-cover rounded';
+                        imgContainer.appendChild(img);
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center';
+                        removeBtn.innerHTML = '×';
+                        removeBtn.onclick = function() {
+                            imgContainer.remove();
+                        };
+                        imgContainer.appendChild(removeBtn);
+                        
+                        evidencePreview.appendChild(imgContainer);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+        
+        // Add entry to activity log
+        function addActivityLogEntry(type, status) {
+            const activityLog = document.getElementById('activityLog');
+            const now = new Date();
+            const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+            
+            const sources = ['Facebook', 'Twitter', 'Instagram', 'TikTok', 'Discord', 'Reddit'];
+            const randomSource = sources[Math.floor(Math.random() * sources.length)];
+            
+            const newRow = document.createElement('tr');
+            newRow.className = 'hover:bg-gray-50';
+            
+            const statusClass = 
+                status.includes('High Risk') || status.includes('Harmful') ? 'bg-red-100 text-red-800' :
+                status.includes('Medium') || status.includes('Submitted') ? 'bg-yellow-100 text-yellow-800' :
+                'bg-green-100 text-green-800';
+            
+            newRow.innerHTML = `
+                <td class="py-2 px-4">${timestamp}</td>
+                <td class="py-2 px-4">${type}</td>
+                <td class="py-2 px-4">${randomSource}</td>
+                <td class="py-2 px-4"><span class="px-2 py-1 rounded ${statusClass}">${status}</span></td>
+            `;
+            
+            if (activityLog.children.length > 9) {
+                activityLog.removeChild(activityLog.lastChild);
+            }
+            
+            activityLog.insertBefore(newRow, activityLog.firstChild);
+        }
+        
+        // Other platform handling
+        function setupPlatformSelector() {
+            const platformSelect = document.getElementById('platform');
+            const otherPlatformContainer = document.getElementById('otherPlatformContainer');
+            
+            platformSelect.addEventListener('change', function() {
+                if (this.value === 'other') {
+                    otherPlatformContainer.classList.remove('hidden');
+                } else {
+                    otherPlatformContainer.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Initialize the dashboard with sample data
+        function initializeDashboard() {
+            // Add some sample activity log entries
+            const statuses = ['High Risk', 'Medium Risk', 'Low Risk', 'Harmful Content', 'Safe Content', 'Submitted'];
+            const types = ['Text', 'Image', 'Report'];
+            
+            for (let i = 0; i < 5; i++) {
+                const randomType = types[Math.floor(Math.random() * types.length)];
+                const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+                addActivityLogEntry(randomType, randomStatus);
+            }
+        }
+        
+        // Page load events
+        window.addEventListener('DOMContentLoaded', () => {
+            setupDropZones();
+            setupPlatformSelector();
+            initializeDashboard();
+            
+            // Start loading the toxicity model in the background
+            loadToxicityModel();
+            
+            // Add file change listeners
+            document.getElementById('imageInput').addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('previewImg').src = e.target.result;
+                        document.getElementById('imagePreview').classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
